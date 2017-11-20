@@ -98,7 +98,7 @@ def adaBoostTrainDS(dataArr,classLabels,numIt = 40):                    #numIt �
         errorRate = aggErrors.sum() / m
         # print('total error: ',errorRate,'\n')
         if errorRate == 0.0 : break
-    return weakClassArr
+    return weakClassArr,aggClassEst
 
 
 # classifierArray = adaBoostTrainDS(dataMat,classLabels,9)
@@ -147,4 +147,41 @@ def test():
     errArr = np.mat(np.ones((m,1)))
     return 1.0-float(errArr[prediction!=np.mat(testLabelArr).T].sum()) / m                      #正确率
 
-print(test())
+'''
+    ROC 曲线的绘制 以及 AUC 计算函数
+'''
+
+def plotROC(predStrengths,classLabels):
+    print(predStrengths)
+    import matplotlib.pyplot as plt
+    cur = (1.0,1.0)
+    ySum = 0.0
+    numPosClas = np.sum(np.array(classLabels) == 1.0)
+    yStep = 1 / float(numPosClas)
+    xStep = 1 / float(len(classLabels) - numPosClas)
+    sortedIndicies = predStrengths.argsort()
+    fig = plt.figure()
+    fig.clf()
+    ax = plt.subplot(111)
+
+    for index in sortedIndicies.tolist()[0]:                                    #预测为 正1 的 概率越大排在越前，所以 就是 预测为+1列  当预测为 1 实际为-1 的可能性全在起那面出现，所以更容易从 1 -》 0
+        if classLabels[index] == 1.0:
+            delX = 0; delY = yStep
+        else:
+            delX = xStep; delY = 0
+            ySum += cur[1]
+        ax.plot([cur[0],cur[0] - delX],[cur[1],cur[1]- delY],c='b')         #
+        cur = (cur[0] - delX,cur[1] - delY)
+    ax.plot([0,1],[0,1],'b--')
+    plt.xlabel('Flase Postive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC curve for AdaBoost Horse Colic Detection System')
+    ax.axis([0,1,0,1])
+    plt.show()
+    print('the Area Under the Curve is :',ySum*xStep)
+
+dataArr,labelArr = loadDataSet('horseColicTraining2.txt')
+classifierArray,aggClassEst = adaBoostTrainDS(dataArr,labelArr,10)
+plotROC(aggClassEst.T,labelArr)
+
+
